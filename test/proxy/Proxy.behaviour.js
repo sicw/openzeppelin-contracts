@@ -10,6 +10,7 @@ module.exports = function shouldBehaveLikeProxy(createProxy, proxyAdminAddress, 
     const nonContractAddress = proxyCreator;
     const initializeData = Buffer.from('');
     await expectRevert.unspecified(
+      // 测试非合约地址作为logicAddress
       createProxy(nonContractAddress, proxyAdminAddress, initializeData, {
         from: proxyCreator,
       }),
@@ -17,10 +18,12 @@ module.exports = function shouldBehaveLikeProxy(createProxy, proxyAdminAddress, 
   });
 
   before('deploy implementation', async function () {
+    // this.proxy是代理合约的地址
     this.implementation = web3.utils.toChecksumAddress((await DummyImplementation.new()).address);
   });
 
   const assertProxyInitialization = function ({ value, balance }) {
+    // 校验代理合约中slot存储的logic地址是否与实际的一致
     it('sets the implementation address', async function () {
       const implementationSlot = await getSlot(this.proxy, ImplementationSlot);
       const implementationAddress = web3.utils.toChecksumAddress(implementationSlot.substr(-40));
@@ -28,11 +31,14 @@ module.exports = function shouldBehaveLikeProxy(createProxy, proxyAdminAddress, 
     });
 
     it('initializes the proxy', async function () {
+      // todo 这里为啥用this.proxy的地址来实例化logic contract DummyImplementation
       const dummy = new DummyImplementation(this.proxy);
       expect(await dummy.value()).to.be.bignumber.equal(value.toString());
     });
 
     it('has expected balance', async function () {
+      // todo 用户存储的eth是放到proxy中还是logic中?
+      // 答: 创建合约或者调用payable方法时在哪个合约就放到哪
       expect(await web3.eth.getBalance(this.proxy)).to.be.bignumber.equal(balance.toString());
     });
   };
